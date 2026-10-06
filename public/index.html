@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN" data-theme="light">
 
 <head>
-    <meta content="text/html;charset=utf-8" http-equiv="content-type" />
+    <meta charset="utf-8" />
     <meta content="IE=edge" http-equiv="X-UA-Compatible" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LogicSim · 逻辑表达式可视化</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="stylesheet" type="text/css" href="lib/joint.css" />
     <link href="lib/select2.min.css" rel="stylesheet" />
-    <link href="lib/w3.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="style.css" />
-
 
     <!-- dependencies -->
     <script src="lib/jquery.min.js"></script>
@@ -23,134 +23,144 @@
 </head>
 
 <body>
-    <!-- content -->
     <div class="joint-app">
-        <div class="app-header">
+        <!-- ============ 顶栏：导航图 + 输入区 + 图模型区 ============ -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-name">Logic<span>Sim</span></div>
+                <div class="brand-sub">逻辑表达式 · 可视化工作台</div>
+            </div>
+
             <div class="mini-map">
+                <span class="mini-map-label">导航图</span>
                 <div id="mini-paper"></div>
                 <div id="mini-view">
                     <div id="mini-resize"></div>
                 </div>
             </div>
+
             <div class="title-container">
-                <div style="width:33%;float:left;overflow:auto;">
-                    <div class="w3-row" style="margin:1px">
-                        <div class="w3-third w3-btn w3-light-green  w3-hover-green"
-                            style="position: relative;overflow: hidden;cursor:pointer">
-                            <img src="assets/icons/save2.svg" width="15" height="15" class="w3-margin-right" />
-                            <span>载入文本</span>
-                            <input type="file" style="position: absolute;
-                            top: 0;
-                            right: 0;
-                            margin: 0;
-                            padding: 0;
-                            font-size: 20px;
-                            cursor: pointer;
-                            opacity: 0;
-                            filter: alpha(opacity=0)" id="fileToLoad" />
-                        </div>
-                        <button class="w3-third w3-btn w3-light-blue  w3-hover-blue" onclick="app.saveTextAsFile()"><img
-                                src="assets/icons/upload.svg" width="15" height="15"
-                                class="w3-margin-right" />保存文本</button>
-                        <input class="w3-third w3-input w3-center" id="inputFileNameToSaveAs" value="默认保存名称"></input>
+                <!-- 左卡：逆波兰表达式输入 -->
+                <section class="card input-card">
+                    <div class="card-title">
+                        <span class="dot dot-blue"></span>逆波兰逻辑表达式
+                        <select id="exampleSel" class="example-sel" onchange="app.loadExample(this.value)">
+                            <option value="">示例…</option>
+                            <option value="a b . fe >">(a∧b) ⇒ fe</option>
+                            <option value="a b . fe ge > =">(a∧b) ⇔ (fe⇒ge)</option>
+                            <option value="a x = x @">∀x(a⇔x) —— 恒假</option>
+                            <option value="a x = x #">∃x(a⇔x) —— 恒真</option>
+                            <option value="a b . a c . , d @">∀d((a∧b)∨(a∧c))</option>
+                        </select>
                     </div>
+                    <textarea id="ReversePol" spellcheck="false"
+                        placeholder="例如：a b . fe &gt;&#10;或含量词：a x = x @"></textarea>
+                    <div class="chip-row">
+                        <button type="button" class="chip" onclick="app.insertOp('.')" title="与">a∧b <b>.</b></button>
+                        <button type="button" class="chip" onclick="app.insertOp(',')" title="或">a∨b <b>,</b></button>
+                        <button type="button" class="chip" onclick="app.insertOp('<')" title="非">¬a <b>&lt;</b></button>
+                        <button type="button" class="chip" onclick="app.insertOp('>')" title="蕴含">a⇒b <b>&gt;</b></button>
+                        <button type="button" class="chip" onclick="app.insertOp('=')" title="等价">a⇔b <b>=</b></button>
+                        <button type="button" class="chip chip-q" onclick="app.insertOp('@')"
+                            title="全称量词：A x @ 即 ∀x.A">∀ <b>@</b></button>
+                        <button type="button" class="chip chip-q" onclick="app.insertOp('#')"
+                            title="存在量词：A x # 即 ∃x.A">∃ <b>#</b></button>
+                    </div>
+                    <div class="expanded-box" id="expandedWrap" hidden>
+                        <span class="expanded-tag">量词消去后</span>
+                        <code id="expandedView"></code>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="app.parseLogic()">解析文本</button>
+                        <label class="btn btn-ghost file-btn">
+                            <img src="assets/icons/save2.svg" width="14" height="14" alt="" />载入文本
+                            <input type="file" id="fileToLoad" style="display:none" />
+                        </label>
+                        <button class="btn btn-ghost" onclick="app.saveTextAsFile()">
+                            <img src="assets/icons/upload.svg" width="14" height="14" alt="" />保存文本
+                        </button>
+                        <input class="filename-input" id="inputFileNameToSaveAs" value="默认保存名称"
+                            spellcheck="false" title="保存文件名" />
+                    </div>
+                </section>
 
-
-                    <textarea style="width:100%;height:60px" id="ReversePol"></textarea>
-
-                    <button class="w3-block w3-btn w3-yellow  w3-hover-deep-orange w3-round-large"
-                        onclick="app.parseLogic()">解析文本</button>
-
-                </div>
-                <div style="width:65%;float:left">
-                    <table style="width:100%">
-                        <tr>
-                            <td colspan="2">
-                                <textarea id="myModel" style="width:100%;height:100px">
-                            {
-                                nodeArray: [],
-                                linkArray: []
-                            }
-                        </textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <button id="LoadButton" class="w3-block w3-btn w3-light-green w3-hover-green"
-                                    onclick="app.load()"><img src="assets/icons/save2.svg" width="15" height="15"
-                                        class="w3-margin-right" />文本转图</button>
-                            </td>
-                            <td>
-                                <button id="SaveButton" class="w3-block w3-btn w3-light-blue  w3-hover-blue"
-                                    onclick="app.save()"><img src="assets/icons/upload.svg" width="15" height="15"
-                                        class="w3-margin-right" />图转文本</button>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+                <!-- 右卡：图模型 JSON -->
+                <section class="card model-card">
+                    <div class="card-title">
+                        <span class="dot dot-green"></span>图模型（JSON）
+                        <span class="card-tip">解析后的中间结果，可手工编辑</span>
+                    </div>
+                    <textarea id="myModel" spellcheck="false"></textarea>
+                    <div class="btn-row">
+                        <button id="LoadButton" class="btn btn-green" onclick="app.load()">文本转图</button>
+                        <button id="SaveButton" class="btn btn-blue" onclick="app.save()">图转文本</button>
+                    </div>
+                </section>
             </div>
-        </div>
 
+            <button class="theme-toggle" id="themeToggle" onclick="app.toggleTheme()" title="切换深色 / 浅色主题">◑</button>
+        </header>
+
+        <!-- ============ 主区：画布 + 右侧栏 + 状态栏 ============ -->
         <div class="app-body">
-            <div class="left-container">
-
-            </div>
+            <div class="left-container"></div>
             <div class="main-container">
                 <div id="paper-container">
-                    <div id="paper" style="cursor:grab">
-                    </div>
+                    <div id="paper" style="cursor:grab"></div>
                 </div>
             </div>
             <div id="app-resize">
                 <div style="position:absolute;left:-35px;background-image:url(assets/box-arrow-in-right.svg);background-size:100%;width:30px;height:30px;"
-                    onclick="
-                app.ResizeBlock()
-                ">
+                    onclick="app.ResizeBlock()">
+                </div>
+            </div>
 
-                </div>
-            </div>
-            <div class="right-container">
-                <div class="w3-row">
-                    <div class="w3-third">
-                        元素名称：
+            <aside class="right-container">
+                <section class="card">
+                    <div class="card-title"><span class="dot dot-yellow"></span>元素编辑</div>
+                    <label class="field-label" for="ERName">元素名称</label>
+                    <input type="text" id="ERName" spellcheck="false" />
+                    <label class="field-label" for="ERMemo">元素备注</label>
+                    <textarea id="ERMemo" spellcheck="false"></textarea>
+                    <button id="ERSetName" class="btn btn-primary btn-block" onclick="app.ChangeName()">保存修改</button>
+                </section>
+
+                <details class="card help-card" open>
+                    <summary>使用帮助</summary>
+                    <div class="help-body">
+                        在左上角文本框内输入<b>逆波兰逻辑表达式</b>。<br /><br />
+                        <b>五种基本运算符</b>：<br />
+                        <code>a b .</code> —— a 与 b（与）<br />
+                        <code>a b ,</code> —— a 或 b（或）<br />
+                        <code>a &lt;</code> —— 非 a（非）<br />
+                        <code>a b &gt;</code> —— a 推出 b（蕴含）<br />
+                        <code>a b =</code> —— a 等价 b（同或）<br /><br />
+                        <b>量词（本次改造新增）</b>：<br />
+                        <code>A x @</code> —— ∀x.A（全称量词）<br />
+                        <code>A x #</code> —— ∃x.A（存在量词）<br />
+                        解析时会自动进行<b>量词消去</b>：<br />
+                        ∀x.A 展开为 A(x:=0) ∧ A(x:=1)；<br />
+                        ∃x.A 展开为 A(x:=0) ∨ A(x:=1)。<br />
+                        例如 <code>a x = x @</code> 即 ∀x(a⇔x)，恒为假；<br />
+                        <code>a x = x #</code> 即 ∃x(a⇔x)，恒为真。<br /><br />
+                        <b>组合示例</b>：<br />
+                        <code>a b . fe &gt;</code> 即 “a 与 b 推出 fe”；<br />
+                        <code>a b . fe ge &gt; =</code> 即 “a 与 b 等价于 fe 推出 ge”。<br /><br />
+                        <b>流程</b>：输入表达式 → 点“解析文本”得到 JSON
+                        → 点“文本转图”生成图形；<br />
+                        示例下拉框可一键载入并渲染。
                     </div>
-                    <input class="w3-twothird" type="text" id="ERName" />
-                </div>
-                <div class="w3-row">
-                    <div class="w3-third">
-                        元素备注：
-                    </div>
-                    <textarea class="w3-twothird" id="ERMemo">
-                    </textarea>
-                </div>
-                <button id="ERSetName" class="w3-block w3-btn w3-yellow  w3-hover-deep-orange w3-round-large"
-                    onclick="app.ChangeName()">保存修改</button>
-                <div>
-                    在“解析文本”按钮上面的文本框内输入“逆波兰逻辑表达式”。<br/>
-                    “逆波兰逻辑表达式”支持五种逻辑操作符：<br/>
-                    {<br/>
-                    “.”：“a b .”代表“a”和“b”的逻辑与，<br/>
-                    “<”：“a <”代表“a”的逻辑非，<br/>
-                    “,”：“a b ,”代表“a”和“b”的逻辑或，<br/>
-                    “=”：“a b =”代表“a”和“b”的逻辑等价/同或<br/>
-                    “>”：“a b >”代表“a”和“b”的逻辑推出，<br/>
-                      }。<br/>
-                    逆波兰逻辑表达式组合的举例说明：<br/>
-                    {<br/>
-                    “a b . fe >”即代表逻辑表达“a 与 b   推出了   fe”，<br/>
-                    “a b . fe ge > =”即代表逻辑表达“a 与 b  等价于  fe 推出了 ge”<br/>
-                    }。<br/>
-                    之后点击“解析文本”按钮，将“逆波兰逻辑表达式”转换为适合图形表示的 JSON 格式，<br/>
-                    之后再点击“解析文本”按钮旁的“文本转图”，得到最终的正规图形表示。
-                </div>
-            </div>
-            <div class="bottom-container">
-                <p id="status">Diagram Model loaded from Json Format.</p>
-            </div>
+                </details>
+            </aside>
+
+            <footer class="bottom-container">
+                <span id="status">图模型已从 JSON 载入。</span>
+                <span class="hints">滚轮缩放 · 拖拽平移 · 双击空白取消选中 · Alt+↑/↓ 缩放 · Alt+[ / ] 收起侧栏</span>
+            </footer>
         </div>
     </div>
-    <script src="ViewGen.js">
-    </script>
+
+    <script src="ViewGen.js"></script>
 </body>
 
 </html>

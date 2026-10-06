@@ -762,16 +762,35 @@ app.ELDump = function (JsonCells) {
 
 app.parseLogic = function () {
     var exprText = document.getElementById("ReversePol").value;
-    var resultParsed = LogicParser(exprText);
+    /* 先做量词消去，再交给原有解析器 */
+    var expanded = QuantifierExpand(exprText);
+    if ("object" == typeof (expanded) && undefined != expanded.error) {
+        status.textContent = expanded.error;
+        status.style.color = "red";
+        document.getElementById("expandedWrap").hidden = true;
+        return false;
+    }
+    var resultParsed = LogicParser(expanded);
     if ("string" == typeof (resultParsed)) {
         status.textContent = resultParsed;
         status.style.color = "red";
+        document.getElementById("expandedWrap").hidden = true;
+        return false;
     } else {
         var viewModel = ViewGen(ModelGen(resultParsed));
         origin = viewModel;
         document.getElementById("myModel").value = JSON.stringify(origin);
-        status.textContent = "Reverse Polish Expression has been parsed.";
-        status.style.color = "black";
+        /* 展示量词消去后的等价表达式（不含量词时隐藏） */
+        var expWrap = document.getElementById("expandedWrap");
+        if (exprText.trim() != expanded.trim()) {
+            document.getElementById("expandedView").textContent = expanded;
+            expWrap.hidden = false;
+        } else {
+            expWrap.hidden = true;
+        }
+        status.textContent = "解析成功：逆波兰表达式已转换为图模型 JSON。";
+        status.style.color = "green";
+        return true;
     }
 };
 
@@ -971,7 +990,49 @@ app.ChangeName = function () {
     }
 }
 
+/* ============ 本次改造新增的交互功能 ============ */
 
+/* 在输入框光标处插入运算符/量词 token */
+app.insertOp = function (token) {
+    var ta = document.getElementById("ReversePol");
+    var s = ta.selectionStart;
+    var e = ta.selectionEnd;
+    var before = ta.value.slice(0, s);
+    var after = ta.value.slice(e);
+    if (before && !/\s$/.test(before)) { before += " "; }
+    var mid = token + " ";
+    ta.value = before + mid + after;
+    var pos = (before + mid).length;
+    ta.setSelectionRange(pos, pos);
+    ta.focus();
+};
+
+/* 载入示例表达式并一键完成 解析 + 转图 */
+app.loadExample = function (expr) {
+    if ("" == expr) { return; }
+    document.getElementById("ReversePol").value = expr;
+    if (app.parseLogic()) {
+        app.load();
+    }
+};
+
+/* 深色 / 浅色主题切换（偏好保存在 localStorage） */
+app.toggleTheme = function () {
+    var root = document.documentElement;
+    var next = ("dark" == root.getAttribute("data-theme")) ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    document.getElementById("themeToggle").textContent = ("dark" == next) ? "◐" : "◑";
+    try { localStorage.setItem("logicsim-theme", next); } catch (e) { }
+};
+(function initTheme() {
+    var t = null;
+    try { t = localStorage.getItem("logicsim-theme"); } catch (e) { }
+    if ("dark" == t) {
+        document.documentElement.setAttribute("data-theme", "dark");
+        var b = document.getElementById("themeToggle");
+        if (b) { b.textContent = "◐"; }
+    }
+})();
 
 app.load();
 
